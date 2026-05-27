@@ -1,0 +1,5 @@
+{
+  "name": "Minimalist Notion Timer",
+  "description": "A clean, Notion-inspired multi-timer application with local storage persistence and background-safe tracking.",
+  "requestFramePermissions": []
+}
