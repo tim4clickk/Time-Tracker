@@ -298,47 +298,60 @@ const App: React.FC = () => {
              )}
           </div>
         </div>
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => setIsHistoryOpen(true)}
-            className="flex items-center gap-2 px-5 py-2.5 bg-white border border-[#e9e9e7] text-[#37352f] rounded-lg font-medium hover:bg-[#f7f7f5] transition-all shadow-sm active:scale-95 text-sm"
-          >
-            <HistoryIcon />
-            <span>History</span>
-          </button>
-          {clickupWorkspace && (
+        <div className="flex items-center gap-2">
+          {/* History + Timesheet — grouped as one unit */}
+          <div className="flex items-center bg-white border border-[#e9e9e7] rounded-lg shadow-sm overflow-hidden">
             <button
-              onClick={() => setIsTimesheetOpen(true)}
-              className="flex items-center gap-2 px-5 py-2.5 bg-white border border-[#e9e9e7] text-[#37352f] rounded-lg font-medium hover:bg-[#f7f7f5] transition-all shadow-sm active:scale-95 text-sm"
+              onClick={() => setIsHistoryOpen(true)}
+              title="History"
+              className="flex items-center gap-1.5 px-3 py-2 text-[#37352f] hover:bg-[#f7f7f5] transition-colors text-sm font-medium"
             >
-              <span>Timesheet</span>
+              <HistoryIcon />
+              <span>History</span>
             </button>
-          )}
+            {clickupWorkspace && (
+              <>
+                <span className="w-px h-5 bg-[#e9e9e7] shrink-0" />
+                <button
+                  onClick={() => setIsTimesheetOpen(true)}
+                  className="flex items-center px-3 py-2 text-[#37352f] hover:bg-[#f7f7f5] transition-colors text-sm font-medium"
+                >
+                  Timesheet
+                </button>
+              </>
+            )}
+          </div>
+
+          {/* ClickUp status — compact badge */}
           <button
             onClick={() => setIsClickUpSettingsOpen(true)}
-            className={`flex items-center gap-2 px-5 py-2.5 border rounded-lg font-medium transition-all shadow-sm active:scale-95 text-sm ${
+            className={`flex items-center gap-1.5 px-3 py-2 rounded-lg border text-xs font-medium transition-all shadow-sm ${
               clickupWorkspace
-                ? 'bg-white border-green-200 text-green-700 hover:bg-green-50'
-                : 'bg-white border-[#e9e9e7] text-[#a4a4a2] hover:bg-[#f7f7f5] hover:text-[#37352f]'
+                ? 'border-green-200 bg-green-50 text-green-700 hover:bg-green-100'
+                : 'border-[#e9e9e7] bg-white text-[#a4a4a2] hover:text-[#37352f] hover:bg-[#f7f7f5]'
             }`}
           >
             {clickupWorkspace
-              ? <><span className="w-2 h-2 rounded-full bg-green-500 shrink-0" /><span>{clickupWorkspace.name}</span></>
+              ? <><span className="w-1.5 h-1.5 rounded-full bg-green-500 shrink-0" /><span>ClickUp</span></>
               : <span>Connect ClickUp</span>
             }
           </button>
+
+          {/* Clear All — icon only */}
           {timers.length > 0 && (
             <button
               onClick={clearAllTimers}
-              className="flex items-center gap-2 px-5 py-2.5 bg-white border border-[#e9e9e7] text-[#a4a4a2] rounded-lg font-medium hover:border-red-200 hover:bg-red-50 hover:text-red-600 transition-all shadow-sm active:scale-95 text-sm"
+              title="Clear all timers"
+              className="flex items-center justify-center w-9 h-9 bg-white border border-[#e9e9e7] text-[#a4a4a2] rounded-lg hover:border-red-200 hover:bg-red-50 hover:text-red-500 transition-all shadow-sm active:scale-95"
             >
               <TrashIcon />
-              <span>Clear All</span>
             </button>
           )}
+
+          {/* Add Task — primary CTA */}
           <button
             onClick={addTimer}
-            className="flex items-center gap-2 px-5 py-2.5 bg-[#37352f] text-white rounded-lg font-medium hover:bg-[#25241f] transition-all shadow-md active:scale-95 text-sm"
+            className="flex items-center gap-2 px-4 py-2 bg-[#37352f] text-white rounded-lg font-medium hover:bg-[#25241f] transition-all shadow-md active:scale-95 text-sm"
           >
             <PlusIcon />
             <span>Add Task</span>
