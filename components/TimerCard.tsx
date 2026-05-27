@@ -13,6 +13,7 @@ interface TimerCardProps {
   clickupWorkspaceId?: string;
   onLinkClickUpTask: (id: string, taskId: string, taskName: string) => void;
   onUnlinkClickUpTask: (id: string) => void;
+  onMarkSynced: (id: string) => void;
 }
 
 const TimerCard: React.FC<TimerCardProps> = ({
@@ -25,7 +26,9 @@ const TimerCard: React.FC<TimerCardProps> = ({
   clickupWorkspaceId,
   onLinkClickUpTask,
   onUnlinkClickUpTask,
+  onMarkSynced,
 }) => {
+  const isSynced = !!timer.syncedAt;
   const [isEditingTime, setIsEditingTime] = useState(false);
   const [tempTime, setTempTime] = useState('');
   const [now, setNow] = useState(Date.now());
@@ -99,15 +102,20 @@ const TimerCard: React.FC<TimerCardProps> = ({
   };
 
   return (
-    <div className="group relative flex flex-col p-6 rounded-xl border border-[#e9e9e7] transition-all duration-300 hover:shadow-md bg-white">
+    <div className={`group relative flex flex-col p-6 rounded-xl border transition-all duration-300 hover:shadow-md ${
+      isSynced
+        ? 'bg-[#fafff9] border-green-100 opacity-70'
+        : 'bg-white border-[#e9e9e7]'
+    }`}>
       {/* Header */}
       <div className="flex justify-between items-start mb-4">
         <input
           type="text"
           value={timer.title}
-          onChange={(e) => onUpdateTitle(timer.id, e.target.value)}
+          onChange={isSynced ? undefined : (e) => onUpdateTitle(timer.id, e.target.value)}
+          readOnly={isSynced}
           placeholder="Enter Task Name"
-          className="bg-transparent border-none focus:ring-0 font-medium text-[#37352f] placeholder-[#a4a4a2] w-full mr-4 outline-none text-lg"
+          className={`bg-transparent border-none focus:ring-0 font-medium text-[#37352f] placeholder-[#a4a4a2] w-full mr-4 outline-none text-lg ${isSynced ? 'cursor-default select-none' : ''}`}
         />
         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
           {/* Copy Title Button */}
@@ -153,12 +161,14 @@ const TimerCard: React.FC<TimerCardProps> = ({
               />
             </form>
           ) : (
-            <div 
-              onClick={handleStartEdit}
-              className={`mono text-5xl font-medium cursor-text select-none transition-all duration-200 hover:bg-[#f7f7f5] rounded px-2 -ml-2 ${
-                timer.isRunning ? 'text-[#37352f]' : 'text-[#a4a4a2]'
+            <div
+              onClick={isSynced ? undefined : handleStartEdit}
+              className={`mono text-5xl font-medium select-none transition-all duration-200 rounded px-2 -ml-2 ${
+                isSynced
+                  ? 'text-[#a4a4a2] cursor-default'
+                  : `cursor-text hover:bg-[#f7f7f5] ${timer.isRunning ? 'text-[#37352f]' : 'text-[#a4a4a2]'}`
               }`}
-              title="Click to edit"
+              title={isSynced ? undefined : 'Click to edit'}
             >
               {formatTime(currentElapsed)}
             </div>
@@ -175,11 +185,12 @@ const TimerCard: React.FC<TimerCardProps> = ({
             <ResetIcon />
           </button>
           <button
-            onClick={() => onToggle(timer.id)}
-            className={`w-12 h-12 flex items-center justify-center rounded-full transition-all active:scale-90 ${
-              timer.isRunning 
-                ? 'bg-[#eb5757] text-white shadow-lg shadow-red-100' 
-                : 'bg-[#37352f] text-white shadow-lg shadow-gray-200'
+            onClick={isSynced ? undefined : () => onToggle(timer.id)}
+            disabled={isSynced}
+            className={`w-12 h-12 flex items-center justify-center rounded-full transition-all ${
+              isSynced
+                ? 'bg-[#e9e9e7] text-[#a4a4a2] cursor-not-allowed'
+                : `active:scale-90 ${timer.isRunning ? 'bg-[#eb5757] text-white shadow-lg shadow-red-100' : 'bg-[#37352f] text-white shadow-lg shadow-gray-200'}`
             }`}
           >
             {timer.isRunning ? <PauseIcon /> : <PlayIcon />}
@@ -194,8 +205,10 @@ const TimerCard: React.FC<TimerCardProps> = ({
           currentElapsed={currentElapsed}
           linkedTaskId={timer.clickupTaskId}
           linkedTaskName={timer.clickupTaskName}
+          isSynced={isSynced}
           onLink={(taskId, taskName) => onLinkClickUpTask(timer.id, taskId, taskName)}
           onUnlink={() => onUnlinkClickUpTask(timer.id)}
+          onSynced={() => onMarkSynced(timer.id)}
         />
       )}
     </div>

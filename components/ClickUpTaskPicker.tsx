@@ -7,11 +7,13 @@ interface Props {
   currentElapsed: number;
   linkedTaskId?: string;
   linkedTaskName?: string;
+  isSynced?: boolean;
   onLink: (taskId: string, taskName: string) => void;
   onUnlink: () => void;
+  onSynced: () => void;
 }
 
-type SyncState = 'idle' | 'syncing' | 'synced' | 'error';
+type SyncState = 'idle' | 'syncing' | 'error';
 
 const ClickUpTaskPicker: React.FC<Props> = ({
   workspaceId,
@@ -19,8 +21,10 @@ const ClickUpTaskPicker: React.FC<Props> = ({
   currentElapsed,
   linkedTaskId,
   linkedTaskName,
+  isSynced,
   onLink,
   onUnlink,
+  onSynced,
 }) => {
   const [isSearching, setIsSearching] = useState(false);
   const [query, setQuery] = useState('');
@@ -67,8 +71,7 @@ const ClickUpTaskPicker: React.FC<Props> = ({
       const durationMs = currentElapsed * 1000;
       const startMs = Date.now() - durationMs;
       await logTime(workspaceId, linkedTaskId, startMs, durationMs, timerTitle);
-      setSyncState('synced');
-      setTimeout(() => setSyncState('idle'), 3000);
+      onSynced();
     } catch (err: unknown) {
       setSyncState('error');
       setSyncError(err instanceof Error ? err.message : 'Unknown error');
@@ -83,34 +86,40 @@ const ClickUpTaskPicker: React.FC<Props> = ({
           <div className="flex items-center gap-1.5 min-w-0">
             <span className="text-[10px] font-semibold uppercase tracking-wider text-[#a4a4a2] shrink-0">CU</span>
             <span className="text-xs font-medium text-[#37352f] truncate">{linkedTaskName}</span>
-            <button
-              onClick={onUnlink}
-              title="Unlink task"
-              className="shrink-0 text-[#a4a4a2] hover:text-red-500 transition-colors leading-none"
-            >
-              <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-                <path d="M1 1l8 8M9 1L1 9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-              </svg>
-            </button>
+            {!isSynced && (
+              <button
+                onClick={onUnlink}
+                title="Unlink task"
+                className="shrink-0 text-[#a4a4a2] hover:text-red-500 transition-colors leading-none"
+              >
+                <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                  <path d="M1 1l8 8M9 1L1 9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                </svg>
+              </button>
+            )}
           </div>
 
-          <button
-            onClick={handleSync}
-            disabled={syncState === 'syncing' || currentElapsed === 0}
-            className={`shrink-0 text-xs px-3 py-1.5 rounded-lg font-medium transition-all active:scale-95 ${
-              syncState === 'synced'
-                ? 'bg-green-50 text-green-700 border border-green-200'
-                : syncState === 'error'
-                ? 'bg-red-50 text-red-700 border border-red-200'
-                : syncState === 'syncing'
-                ? 'bg-[#f7f7f5] text-[#a4a4a2] border border-[#e9e9e7] cursor-wait'
-                : currentElapsed === 0
-                ? 'bg-[#f7f7f5] text-[#a4a4a2] border border-[#e9e9e7] cursor-not-allowed opacity-50'
-                : 'bg-[#37352f] text-white hover:bg-[#25241f]'
-            }`}
-          >
-            {syncState === 'syncing' ? 'Syncing...' : syncState === 'synced' ? 'Synced!' : syncState === 'error' ? 'Failed' : 'Sync'}
-          </button>
+          {isSynced ? (
+            <span className="shrink-0 text-xs px-2.5 py-1 rounded-lg font-medium bg-green-50 text-green-600 border border-green-200 opacity-70">
+              ✓ Synced
+            </span>
+          ) : (
+            <button
+              onClick={handleSync}
+              disabled={syncState === 'syncing' || currentElapsed === 0}
+              className={`shrink-0 text-xs px-3 py-1.5 rounded-lg font-medium transition-all active:scale-95 ${
+                syncState === 'error'
+                  ? 'bg-red-50 text-red-700 border border-red-200'
+                  : syncState === 'syncing'
+                  ? 'bg-[#f7f7f5] text-[#a4a4a2] border border-[#e9e9e7] cursor-wait'
+                  : currentElapsed === 0
+                  ? 'bg-[#f7f7f5] text-[#a4a4a2] border border-[#e9e9e7] cursor-not-allowed opacity-50'
+                  : 'bg-[#37352f] text-white hover:bg-[#25241f]'
+              }`}
+            >
+              {syncState === 'syncing' ? 'Syncing...' : syncState === 'error' ? 'Failed' : 'Sync'}
+            </button>
+          )}
         </div>
 
         {syncState === 'error' && syncError && (

@@ -1,6 +1,6 @@
 import React from 'react';
 import { HistoryItem } from '../types';
-import { CloseIcon, TrashIcon } from './Icons';
+import { CloseIcon, TrashIcon, RestoreIcon } from './Icons';
 
 interface HistorySidebarProps {
   isOpen: boolean;
@@ -8,6 +8,7 @@ interface HistorySidebarProps {
   historyItems: HistoryItem[];
   onDeleteOne: (id: string) => void;
   onClearAll: () => void;
+  onRestore: (item: HistoryItem) => void;
 }
 
 const HistorySidebar: React.FC<HistorySidebarProps> = ({
@@ -16,6 +17,7 @@ const HistorySidebar: React.FC<HistorySidebarProps> = ({
   historyItems,
   onDeleteOne,
   onClearAll,
+  onRestore,
 }) => {
   if (!isOpen) return null;
 
@@ -69,13 +71,13 @@ const HistorySidebar: React.FC<HistorySidebarProps> = ({
           ) : (
             <div className="space-y-4">
               {historyItems.map((item) => (
-                <div 
-                  key={item.id} 
+                <div
+                  key={item.id}
                   className="group bg-white border border-[#e9e9e7] rounded-lg p-4 hover:border-[#d3d1cb] hover:shadow-sm transition-all flex justify-between items-start gap-4"
                 >
                   <div className="flex-1 min-w-0">
                     <h3 className="font-medium text-[#37352f] truncate">
-                      {item.title || "Untitled Task"}
+                      {item.title || 'Untitled Task'}
                     </h3>
                     <div className="flex items-center gap-3 mt-1 text-xs text-[#a4a4a2]">
                       <span className="font-mono text-[#37352f] bg-[#f7f7f5] px-1.5 py-0.5 rounded">
@@ -85,13 +87,22 @@ const HistorySidebar: React.FC<HistorySidebarProps> = ({
                       <span>Deleted {formatDate(item.deletedAt)}</span>
                     </div>
                   </div>
-                  <button
-                    onClick={() => onDeleteOne(item.id)}
-                    className="p-2 text-[#a4a4a2] hover:text-red-600 hover:bg-red-50 rounded transition-colors opacity-0 group-hover:opacity-100"
-                    title="Delete permanently"
-                  >
-                    <TrashIcon />
-                  </button>
+                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button
+                      onClick={() => onRestore(item)}
+                      className="p-2 text-[#a4a4a2] hover:text-[#37352f] hover:bg-[#f7f7f5] rounded transition-colors"
+                      title="Restore to dashboard"
+                    >
+                      <RestoreIcon />
+                    </button>
+                    <button
+                      onClick={() => onDeleteOne(item.id)}
+                      className="p-2 text-[#a4a4a2] hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                      title="Delete permanently"
+                    >
+                      <TrashIcon />
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>

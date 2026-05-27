@@ -8,6 +8,7 @@ export interface Timer {
   createdAt: number;
   clickupTaskId?: string;
   clickupTaskName?: string;
+  syncedAt?: number;
 }
 
 export type TimerAction = 

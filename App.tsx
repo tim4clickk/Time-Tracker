@@ -204,15 +204,27 @@ const App: React.FC = () => {
   const resetTimer = useCallback((id: string) => {
     setTimers(prev => prev.map(t => {
       if (t.id === id) {
-        return {
-          ...t,
-          baseSeconds: 0,
-          isRunning: false,
-          sessionStartTime: null
-        };
+        return { ...t, baseSeconds: 0, isRunning: false, sessionStartTime: null, syncedAt: undefined };
       }
       return t;
     }));
+  }, []);
+
+  const markTimerSynced = useCallback((id: string) => {
+    setTimers(prev => prev.map(t => t.id === id ? { ...t, syncedAt: Date.now() } : t));
+  }, []);
+
+  const restoreTimer = useCallback((item: HistoryItem) => {
+    const restored: Timer = {
+      id: Math.random().toString(36).substr(2, 9),
+      title: item.title,
+      baseSeconds: item.totalSeconds,
+      isRunning: false,
+      sessionStartTime: null,
+      createdAt: Date.now(),
+    };
+    setTimers(prev => [...prev, restored]);
+    setHistory(prev => prev.filter(h => h.id !== item.id));
   }, []);
 
   const handleSelectClickUpWorkspace = useCallback((workspace: ClickUpWorkspaceConfig | null) => {
@@ -373,6 +385,7 @@ const App: React.FC = () => {
             clickupWorkspaceId={clickupWorkspace?.id}
             onLinkClickUpTask={linkClickUpTask}
             onUnlinkClickUpTask={unlinkClickUpTask}
+            onMarkSynced={markTimerSynced}
           />
         ))}
 
@@ -427,6 +440,7 @@ const App: React.FC = () => {
         historyItems={history}
         onDeleteOne={deleteHistoryItem}
         onClearAll={clearHistory}
+        onRestore={restoreTimer}
       />
 
       <ClickUpSettings
