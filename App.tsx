@@ -3,6 +3,7 @@ import { Timer, HistoryItem } from './types';
 import TimerCard from './components/TimerCard';
 import HistorySidebar from './components/HistorySidebar';
 import ClickUpSettings from './components/ClickUpSettings';
+import TimesheetPanel from './components/TimesheetPanel';
 import LoginPage from './components/LoginPage';
 import { PlusIcon, TrashIcon, HistoryIcon } from './components/Icons';
 import { saveTimers, loadTimers, saveHistory, loadHistory, saveClickUpWorkspace, loadClickUpWorkspace, ClickUpWorkspaceConfig } from './utils/storage';
@@ -12,6 +13,7 @@ const App: React.FC = () => {
   const [timers, setTimers] = useState<Timer[]>([]);
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [isTimesheetOpen, setIsTimesheetOpen] = useState(false);
   const [isClickUpSettingsOpen, setIsClickUpSettingsOpen] = useState(false);
   const [clickupWorkspace, setClickupWorkspace] = useState<ClickUpWorkspaceConfig | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
@@ -304,6 +306,14 @@ const App: React.FC = () => {
             <HistoryIcon />
             <span>History</span>
           </button>
+          {clickupWorkspace && (
+            <button
+              onClick={() => setIsTimesheetOpen(true)}
+              className="flex items-center gap-2 px-5 py-2.5 bg-white border border-[#e9e9e7] text-[#37352f] rounded-lg font-medium hover:bg-[#f7f7f5] transition-all shadow-sm active:scale-95 text-sm"
+            >
+              <span>Timesheet</span>
+            </button>
+          )}
           <button
             onClick={() => setIsClickUpSettingsOpen(true)}
             className={`flex items-center gap-2 px-5 py-2.5 border rounded-lg font-medium transition-all shadow-sm active:scale-95 text-sm ${
@@ -412,6 +422,14 @@ const App: React.FC = () => {
         currentWorkspace={clickupWorkspace}
         onSelectWorkspace={handleSelectClickUpWorkspace}
       />
+
+      {clickupWorkspace && (
+        <TimesheetPanel
+          isOpen={isTimesheetOpen}
+          onClose={() => setIsTimesheetOpen(false)}
+          workspaceId={clickupWorkspace.id}
+        />
+      )}
     </div>
   );
 };

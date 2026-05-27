@@ -3,6 +3,23 @@ export interface ClickUpWorkspace {
   name: string;
 }
 
+export interface ClickUpMember {
+  id: number;
+  username: string;
+  email: string;
+  profilePicture: string | null;
+}
+
+export interface ClickUpTimeEntry {
+  id: string;
+  task: { id: string; name: string } | null;
+  description: string;
+  start: string;    // Unix ms as string
+  end: string;      // Unix ms as string
+  duration: string; // ms as string
+  user: { id: number; username: string };
+}
+
 export interface ClickUpTask {
   id: string;
   name: string;
@@ -23,6 +40,37 @@ export async function searchTasks(teamId: string, query: string): Promise<ClickU
   const data = await res.json();
   if (!res.ok) throw new Error(data.error || 'Failed to search tasks');
   return data.tasks || [];
+}
+
+export async function getTeamMembers(teamId: string): Promise<ClickUpMember[]> {
+  const params = new URLSearchParams({ teamId });
+  const res = await fetch(`/.netlify/functions/get-team-members?${params}`);
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Failed to fetch team members');
+  return data.members || [];
+}
+
+export async function getTimeEntries(
+  teamId: string,
+  assigneeId: string,
+  date: Date
+): Promise<ClickUpTimeEntry[]> {
+  const start = new Date(date);
+  start.setHours(0, 0, 0, 0);
+  const end = new Date(date);
+  end.setHours(23, 59, 59, 999);
+
+  const params = new URLSearchParams({
+    teamId,
+    assigneeId,
+    startDate: start.getTime().toString(),
+    endDate: end.getTime().toString(),
+  });
+
+  const res = await fetch(`/.netlify/functions/get-time-entries?${params}`);
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Failed to fetch time entries');
+  return data.entries || [];
 }
 
 export async function logTime(
