@@ -3,10 +3,12 @@ import { Timer, HistoryItem } from './types';
 import TimerCard from './components/TimerCard';
 import HistorySidebar from './components/HistorySidebar';
 import ClickUpSettings from './components/ClickUpSettings';
+import LoginPage from './components/LoginPage';
 import { PlusIcon, TrashIcon, HistoryIcon } from './components/Icons';
 import { saveTimers, loadTimers, saveHistory, loadHistory, saveClickUpWorkspace, loadClickUpWorkspace, ClickUpWorkspaceConfig } from './utils/storage';
 
 const App: React.FC = () => {
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const [timers, setTimers] = useState<Timer[]>([]);
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
@@ -14,6 +16,20 @@ const App: React.FC = () => {
   const [clickupWorkspace, setClickupWorkspace] = useState<ClickUpWorkspaceConfig | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
   const [now, setNow] = useState(Date.now());
+
+  // Verify stored auth token on mount
+  useEffect(() => {
+    const token = localStorage.getItem('app_auth_token');
+    if (!token) { setIsAuthenticated(false); return; }
+    fetch('/.netlify/functions/auth', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'verify', token }),
+    })
+      .then(r => r.json())
+      .then(data => setIsAuthenticated(data.valid === true))
+      .catch(() => setIsAuthenticated(false));
+  }, []);
 
   // Initialize from storage
   useEffect(() => {
@@ -233,6 +249,23 @@ const App: React.FC = () => {
     }
   }, [timers]);
 
+  const handleLogout = useCallback(() => {
+    localStorage.removeItem('app_auth_token');
+    setIsAuthenticated(false);
+  }, []);
+
+  if (isAuthenticated === null) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-white">
+        <div className="w-12 h-12 border-2 border-gray-100 border-t-[#37352f] rounded-full animate-spin mb-4"></div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <LoginPage onAuthenticated={() => setIsAuthenticated(true)} />;
+  }
+
   if (!isLoaded) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-white">
@@ -354,8 +387,14 @@ const App: React.FC = () => {
           <div className="w-2 h-2 rounded-full bg-green-500"></div>
           <div>All trackers are automatically synced to your local browser storage.</div>
         </div>
-        <div className="flex gap-4 font-medium italic">
-           <span>Minimalism first</span>
+        <div className="flex gap-4 font-medium italic items-center">
+          <span>Minimalism first</span>
+          <button
+            onClick={handleLogout}
+            className="not-italic font-normal text-[#a4a4a2] hover:text-[#eb5757] transition-colors"
+          >
+            Sign out
+          </button>
         </div>
       </footer>
 

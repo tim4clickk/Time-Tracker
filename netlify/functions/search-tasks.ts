@@ -27,7 +27,6 @@ export const handler = async (event: NetlifyEvent): Promise<NetlifyResponse> => 
   }
 
   const params = new URLSearchParams({
-    search: query || '',
     subtasks: 'true',
     include_closed: 'false',
     page: '0',
@@ -38,10 +37,27 @@ export const handler = async (event: NetlifyEvent): Promise<NetlifyResponse> => 
     { headers: { Authorization: apiKey } }
   );
 
+  if (!response.ok) {
+    const data = await response.json();
+    return {
+      statusCode: response.status,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    };
+  }
+
   const data = await response.json();
+  const allTasks: Array<{ name: string; [key: string]: unknown }> = data.tasks || [];
+
+  // ClickUp's search param only works when list_ids are provided — filter server-side instead
+  const term = (query || '').toLowerCase().trim();
+  const filtered = term
+    ? allTasks.filter(task => task.name.toLowerCase().includes(term))
+    : allTasks;
+
   return {
-    statusCode: response.status,
+    statusCode: 200,
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data),
+    body: JSON.stringify({ tasks: filtered }),
   };
 };
