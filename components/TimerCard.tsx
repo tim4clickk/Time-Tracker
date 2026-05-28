@@ -104,7 +104,7 @@ const TimerCard: React.FC<TimerCardProps> = ({
   return (
     <div className={`group relative flex flex-col p-6 rounded-xl border transition-all duration-300 hover:shadow-md ${
       isSynced
-        ? 'bg-[#fafff9] border-green-100 opacity-70'
+        ? 'bg-[#f0fdf4] border-green-200 shadow-sm shadow-green-100'
         : 'bg-white border-[#e9e9e7]'
     }`}>
       {/* Header */}
