@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { searchTasks, logTime, ClickUpTask } from '../utils/clickup';
+import { loadSearchSpaceIds } from '../utils/storage';
 
 interface Props {
   workspaceId: string;
@@ -47,7 +48,8 @@ const ClickUpTaskPicker: React.FC<Props> = ({
     debounceRef.current = setTimeout(async () => {
       setFetching(true);
       try {
-        const tasks = await searchTasks(workspaceId, query);
+        const spaceIds = loadSearchSpaceIds();
+        const tasks = await searchTasks(workspaceId, query, spaceIds.length > 0 ? spaceIds : undefined);
         setResults(tasks.slice(0, 8));
       } catch {
         setResults([]);

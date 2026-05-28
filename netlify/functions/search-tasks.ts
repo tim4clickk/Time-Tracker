@@ -18,24 +18,21 @@ export const handler = async (event: NetlifyEvent): Promise<NetlifyResponse> => 
     };
   }
 
-  const { teamId, query } = event.queryStringParameters || {};
+  const { teamId, query, spaceIds } = event.queryStringParameters || {};
   if (!teamId) {
-    return {
-      statusCode: 400,
-      body: JSON.stringify({ error: 'teamId is required' }),
-    };
+    return { statusCode: 400, body: JSON.stringify({ error: 'teamId is required' }) };
   }
 
-  const params = new URLSearchParams({
-    subtasks: 'true',
-    include_closed: 'false',
-    page: '0',
-  });
+  // Build URL manually so space_ids[] array params are formatted correctly
+  let url = `https://api.clickup.com/api/v2/team/${teamId}/task?page=0&subtasks=true&include_closed=false`;
 
-  const response = await fetch(
-    `https://api.clickup.com/api/v2/team/${teamId}/task?${params}`,
-    { headers: { Authorization: apiKey } }
-  );
+  if (spaceIds) {
+    spaceIds.split(',').forEach(id => {
+      url += `&space_ids[]=${encodeURIComponent(id.trim())}`;
+    });
+  }
+
+  const response = await fetch(url, { headers: { Authorization: apiKey } });
 
   if (!response.ok) {
     const data = await response.json();
@@ -49,7 +46,7 @@ export const handler = async (event: NetlifyEvent): Promise<NetlifyResponse> => 
   const data = await response.json();
   const allTasks: Array<{ name: string; [key: string]: unknown }> = data.tasks || [];
 
-  // ClickUp's search param only works when list_ids are provided — filter server-side instead
+  // Filter by name client-side — reliable regardless of ClickUp API behaviour
   const term = (query || '').toLowerCase().trim();
   const filtered = term
     ? allTasks.filter(task => task.name.toLowerCase().includes(term))

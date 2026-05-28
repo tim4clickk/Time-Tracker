@@ -4,6 +4,24 @@ import { Timer, HistoryItem } from '../types';
 const STORAGE_KEY = 'notion_timers_v1';
 const HISTORY_STORAGE_KEY = 'notion_timers_history_v1';
 const CLICKUP_WORKSPACE_KEY = 'clickup_workspace_v1';
+const CLICKUP_SPACE_IDS_KEY = 'clickup_search_space_ids_v1';
+
+export const saveSearchSpaceIds = (ids: string[]): void => {
+  try {
+    localStorage.setItem(CLICKUP_SPACE_IDS_KEY, JSON.stringify(ids));
+  } catch (e) {
+    console.error('Failed to save search space IDs', e);
+  }
+};
+
+export const loadSearchSpaceIds = (): string[] => {
+  try {
+    const raw = localStorage.getItem(CLICKUP_SPACE_IDS_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+};
 
 export interface ClickUpWorkspaceConfig {
   id: string;
