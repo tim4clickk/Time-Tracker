@@ -178,7 +178,9 @@ const TimerCard: React.FC<TimerCardProps> = ({
         {/* Controls */}
         <div className="flex gap-3">
           <button
-            onClick={() => onReset(timer.id)}
+            onClick={() => {
+              if (window.confirm('Reset this timer back to zero?')) onReset(timer.id);
+            }}
             className="w-10 h-10 flex items-center justify-center rounded-full border border-[#e9e9e7] text-[#a4a4a2] hover:bg-[#f7f7f5] hover:text-[#37352f] transition-all active:scale-95"
             title="Reset"
           >
