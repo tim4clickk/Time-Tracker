@@ -373,7 +373,12 @@ const App: React.FC = () => {
 
       {/* Timers Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-        {timers.map(timer => (
+        {[...timers]
+          .sort((a, b) => {
+            if (!!a.syncedAt === !!b.syncedAt) return 0;
+            return a.syncedAt ? 1 : -1;
+          })
+          .map(timer => (
           <TimerCard
             key={timer.id}
             timer={timer}
