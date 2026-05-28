@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { searchTasks, logTime, ClickUpTask } from '../utils/clickup';
-import { loadSearchSpaceIds } from '../utils/storage';
+import { loadSearchSpaceIds, loadSearchListIds } from '../utils/storage';
 
 interface Props {
   workspaceId: string;
@@ -48,8 +48,15 @@ const ClickUpTaskPicker: React.FC<Props> = ({
     debounceRef.current = setTimeout(async () => {
       setFetching(true);
       try {
+        const listIds = loadSearchListIds();
         const spaceIds = loadSearchSpaceIds();
-        const tasks = await searchTasks(workspaceId, query, spaceIds.length > 0 ? spaceIds : undefined);
+        // List IDs take priority — most specific filter wins
+        const options = listIds.length > 0
+          ? { listIds }
+          : spaceIds.length > 0
+          ? { spaceIds }
+          : undefined;
+        const tasks = await searchTasks(workspaceId, query, options);
         setResults(tasks.slice(0, 8));
       } catch {
         setResults([]);

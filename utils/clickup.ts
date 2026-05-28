@@ -8,6 +8,13 @@ export interface ClickUpSpace {
   name: string;
 }
 
+export interface ClickUpList {
+  id: string;
+  name: string;
+  taskCount: number | null;
+  folderName: string | null;
+}
+
 export interface ClickUpMember {
   id: number;
   username: string;
@@ -42,10 +49,11 @@ export async function getWorkspaces(): Promise<ClickUpWorkspace[]> {
 export async function searchTasks(
   teamId: string,
   query: string,
-  spaceIds?: string[]
+  options?: { spaceIds?: string[]; listIds?: string[] }
 ): Promise<ClickUpTask[]> {
   const params = new URLSearchParams({ teamId, query });
-  if (spaceIds && spaceIds.length > 0) params.set('spaceIds', spaceIds.join(','));
+  if (options?.listIds?.length) params.set('listIds', options.listIds.join(','));
+  else if (options?.spaceIds?.length) params.set('spaceIds', options.spaceIds.join(','));
   const res = await fetch(`/.netlify/functions/search-tasks?${params}`);
   const data = await res.json();
   if (!res.ok) throw new Error(data.error || 'Failed to search tasks');
@@ -58,6 +66,14 @@ export async function getSpaces(teamId: string): Promise<ClickUpSpace[]> {
   const data = await res.json();
   if (!res.ok) throw new Error(data.error || 'Failed to fetch spaces');
   return data.spaces || [];
+}
+
+export async function getLists(spaceId: string): Promise<ClickUpList[]> {
+  const params = new URLSearchParams({ spaceId });
+  const res = await fetch(`/.netlify/functions/get-lists?${params}`);
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Failed to fetch lists');
+  return data.lists || [];
 }
 
 export async function getTeamMembers(teamId: string): Promise<ClickUpMember[]> {

@@ -18,15 +18,20 @@ export const handler = async (event: NetlifyEvent): Promise<NetlifyResponse> => 
     };
   }
 
-  const { teamId, query, spaceIds } = event.queryStringParameters || {};
+  const { teamId, query, spaceIds, listIds } = event.queryStringParameters || {};
   if (!teamId) {
     return { statusCode: 400, body: JSON.stringify({ error: 'teamId is required' }) };
   }
 
-  // Build URL manually so space_ids[] array params are formatted correctly
+  // Build URL manually — array params must be appended individually
   let url = `https://api.clickup.com/api/v2/team/${teamId}/task?page=0&subtasks=true&include_closed=false`;
 
-  if (spaceIds) {
+  // list_ids[] takes priority over space_ids[] when both are provided
+  if (listIds) {
+    listIds.split(',').forEach(id => {
+      url += `&list_ids[]=${encodeURIComponent(id.trim())}`;
+    });
+  } else if (spaceIds) {
     spaceIds.split(',').forEach(id => {
       url += `&space_ids[]=${encodeURIComponent(id.trim())}`;
     });
