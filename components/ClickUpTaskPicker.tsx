@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { searchTasks, logTime, ClickUpTask } from '../utils/clickup';
 import { loadSearchSpaceIds, loadSearchListIds } from '../utils/storage';
+import { buildScopeKey, loadTaskCache, saveTaskCache, clearTaskCache, formatCacheAge } from '../utils/taskCache';
 
 interface Props {
   workspaceId: string;
@@ -29,47 +30,70 @@ const ClickUpTaskPicker: React.FC<Props> = ({
 }) => {
   const [isSearching, setIsSearching] = useState(false);
   const [query, setQuery] = useState('');
-  const [results, setResults] = useState<ClickUpTask[]>([]);
-  const [fetching, setFetching] = useState(false);
+  const [allTasks, setAllTasks] = useState<ClickUpTask[]>([]);
+  const [loadingAll, setLoadingAll] = useState(false);
+  const [hasLoaded, setHasLoaded] = useState(false);
+  const [cacheAgeMs, setCacheAgeMs] = useState<number | null>(null);
   const [syncState, setSyncState] = useState<SyncState>('idle');
   const [syncError, setSyncError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Focus input when search opens
   useEffect(() => {
     if (isSearching) setTimeout(() => inputRef.current?.focus(), 0);
   }, [isSearching]);
 
+  // Fetch all tasks once when search is first opened — subsequent opens use cache
   useEffect(() => {
-    if (!isSearching) return;
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    if (!query.trim()) { setResults([]); return; }
+    if (!isSearching || hasLoaded) return;
 
-    debounceRef.current = setTimeout(async () => {
-      setFetching(true);
-      try {
-        const listIds = loadSearchListIds();
-        const spaceIds = loadSearchSpaceIds();
-        // List IDs take priority — most specific filter wins
-        const options = listIds.length > 0
-          ? { listIds }
-          : spaceIds.length > 0
-          ? { spaceIds }
-          : undefined;
-        const tasks = await searchTasks(workspaceId, query, options);
-        setResults(tasks.slice(0, 8));
-      } catch {
-        setResults([]);
-      } finally {
-        setFetching(false);
-      }
-    }, 350);
-  }, [query, workspaceId, isSearching]);
+    const listIds = loadSearchListIds();
+    const spaceIds = loadSearchSpaceIds();
+    const scopeKey = buildScopeKey(workspaceId, listIds, spaceIds);
+
+    const cached = loadTaskCache(scopeKey);
+    if (cached) {
+      setAllTasks(cached.tasks);
+      setCacheAgeMs(cached.ageMs);
+      setHasLoaded(true);
+      return;
+    }
+
+    setLoadingAll(true);
+    const options = listIds.length > 0
+      ? { listIds }
+      : spaceIds.length > 0
+      ? { spaceIds }
+      : undefined;
+
+    searchTasks(workspaceId, '', options)
+      .then(tasks => {
+        setAllTasks(tasks);
+        setCacheAgeMs(null);
+        saveTaskCache(tasks, scopeKey);
+        setHasLoaded(true);
+      })
+      .catch(() => setAllTasks([]))
+      .finally(() => setLoadingAll(false));
+  }, [isSearching, hasLoaded, workspaceId]);
+
+  // Filter locally — instant, no API call
+  const filteredResults = useMemo(() => {
+    const term = query.toLowerCase().trim();
+    if (!term) return allTasks.slice(0, 8);
+    return allTasks.filter(t => t.name.toLowerCase().includes(term)).slice(0, 8);
+  }, [allTasks, query]);
+
+  const handleRefresh = () => {
+    clearTaskCache();
+    setAllTasks([]);
+    setHasLoaded(false);
+    setCacheAgeMs(null);
+  };
 
   const closeSearch = () => {
     setIsSearching(false);
     setQuery('');
-    setResults([]);
   };
 
   const handleSync = async () => {
@@ -88,6 +112,7 @@ const ClickUpTaskPicker: React.FC<Props> = ({
     }
   };
 
+  // — Linked + synced state —
   if (linkedTaskId) {
     return (
       <div className="mt-4 pt-4 border-t border-[#e9e9e7]">
@@ -130,7 +155,6 @@ const ClickUpTaskPicker: React.FC<Props> = ({
             </button>
           )}
         </div>
-
         {syncState === 'error' && syncError && (
           <p className="mt-1.5 text-xs text-red-500 leading-snug">{syncError}</p>
         )}
@@ -138,9 +162,11 @@ const ClickUpTaskPicker: React.FC<Props> = ({
     );
   }
 
+  // — Search open —
   if (isSearching) {
     return (
       <div className="mt-4 pt-4 border-t border-[#e9e9e7]">
+        {/* Search input */}
         <div className="relative">
           <input
             ref={inputRef}
@@ -148,17 +174,19 @@ const ClickUpTaskPicker: React.FC<Props> = ({
             value={query}
             onChange={e => setQuery(e.target.value)}
             onKeyDown={e => e.key === 'Escape' && closeSearch()}
-            placeholder="Search ClickUp tasks..."
-            className="w-full text-sm border border-[#e9e9e7] rounded-lg px-3 py-2 outline-none focus:border-[#37352f] text-[#37352f] placeholder-[#a4a4a2] bg-white"
+            placeholder={loadingAll ? 'Loading tasks...' : `Search ${allTasks.length} tasks...`}
+            disabled={loadingAll}
+            className="w-full text-sm border border-[#e9e9e7] rounded-lg px-3 py-2 outline-none focus:border-[#37352f] text-[#37352f] placeholder-[#a4a4a2] bg-white disabled:bg-[#f7f7f5]"
           />
-          {fetching && (
+          {loadingAll && (
             <div className="absolute right-3 top-1/2 -translate-y-1/2 w-3 h-3 border border-[#a4a4a2] border-t-[#37352f] rounded-full animate-spin" />
           )}
         </div>
 
-        {results.length > 0 && (
+        {/* Results — filtered locally */}
+        {!loadingAll && filteredResults.length > 0 && (
           <div className="mt-1 border border-[#e9e9e7] rounded-xl overflow-hidden shadow-sm">
-            {results.map(task => (
+            {filteredResults.map(task => (
               <button
                 key={task.id}
                 onClick={() => { onLink(task.id, task.name); closeSearch(); }}
@@ -173,20 +201,38 @@ const ClickUpTaskPicker: React.FC<Props> = ({
           </div>
         )}
 
-        {!fetching && query.trim() && results.length === 0 && (
+        {!loadingAll && query.trim() && filteredResults.length === 0 && (
           <p className="mt-2 text-xs text-[#a4a4a2] text-center py-1">No tasks found</p>
         )}
 
-        <button
-          onClick={closeSearch}
-          className="mt-2 text-xs text-[#a4a4a2] hover:text-[#37352f] transition-colors"
-        >
-          Cancel
-        </button>
+        {/* Footer: cancel + cache info */}
+        <div className="flex items-center justify-between mt-2">
+          <button
+            onClick={closeSearch}
+            className="text-xs text-[#a4a4a2] hover:text-[#37352f] transition-colors"
+          >
+            Cancel
+          </button>
+          {hasLoaded && (
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] text-[#a4a4a2]">
+                {cacheAgeMs !== null ? `Cached ${formatCacheAge(cacheAgeMs)}` : `${allTasks.length} tasks loaded`}
+              </span>
+              <button
+                onClick={handleRefresh}
+                title="Refresh task list"
+                className="text-[10px] text-[#a4a4a2] hover:text-[#37352f] transition-colors underline underline-offset-2"
+              >
+                Refresh
+              </button>
+            </div>
+          )}
+        </div>
       </div>
     );
   }
 
+  // — Default: link prompt —
   return (
     <div className="mt-4 pt-4 border-t border-[#e9e9e7]">
       <button
