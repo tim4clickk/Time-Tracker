@@ -132,7 +132,7 @@ const App: React.FC = () => {
       sessionStartTime: null,
       createdAt: Date.now()
     };
-    setTimers(prev => [newTimer, ...prev]);
+    setTimers(prev => [...prev, newTimer]);
   }, []);
 
   const deleteTimer = useCallback((id: string) => {
