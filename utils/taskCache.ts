@@ -1,7 +1,7 @@
 import { ClickUpTask } from './clickup';
 
 const CACHE_KEY = 'clickup_task_cache_v1';
-const CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
+const CACHE_TTL_MS = 8 * 60 * 60 * 1000; // 8 hours
 
 interface TaskCacheData {
   tasks: ClickUpTask[];
@@ -45,6 +45,7 @@ export function clearTaskCache(): void {
 export function formatCacheAge(ageMs: number): string {
   const mins = Math.floor(ageMs / 60000);
   if (mins < 1) return 'just now';
-  if (mins === 1) return '1 min ago';
-  return `${mins} mins ago`;
+  if (mins < 60) return mins === 1 ? '1 min ago' : `${mins} mins ago`;
+  const hrs = Math.floor(mins / 60);
+  return hrs === 1 ? '1 hr ago' : `${hrs} hrs ago`;
 }
