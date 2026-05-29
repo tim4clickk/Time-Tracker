@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Timer } from '../types';
-import { PlayIcon, PauseIcon, TrashIcon, ResetIcon, CopyIcon, TextIcon } from './Icons';
+import { PlayIcon, PauseIcon, TrashIcon, ResetIcon, CopyIcon, TextIcon, GripIcon } from './Icons';
 import ClickUpTaskPicker from './ClickUpTaskPicker';
 
 interface TimerCardProps {
@@ -14,6 +14,8 @@ interface TimerCardProps {
   onLinkClickUpTask: (id: string, taskId: string, taskName: string) => void;
   onUnlinkClickUpTask: (id: string) => void;
   onMarkSynced: (id: string) => void;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  dragHandleProps?: Record<string, any>;
 }
 
 const TimerCard: React.FC<TimerCardProps> = ({
@@ -27,6 +29,7 @@ const TimerCard: React.FC<TimerCardProps> = ({
   onLinkClickUpTask,
   onUnlinkClickUpTask,
   onMarkSynced,
+  dragHandleProps,
 }) => {
   const isSynced = !!timer.syncedAt;
   const [isEditingTime, setIsEditingTime] = useState(false);
@@ -109,6 +112,15 @@ const TimerCard: React.FC<TimerCardProps> = ({
     }`}>
       {/* Header */}
       <div className="flex justify-between items-start mb-4">
+        {dragHandleProps && (
+          <div
+            {...dragHandleProps}
+            className="opacity-0 group-hover:opacity-100 cursor-grab active:cursor-grabbing text-[#a4a4a2] hover:text-[#37352f] p-1 -ml-1 mr-2 mt-0.5 shrink-0 touch-none select-none"
+            title="Drag to reorder"
+          >
+            <GripIcon />
+          </div>
+        )}
         <input
           type="text"
           value={timer.title}

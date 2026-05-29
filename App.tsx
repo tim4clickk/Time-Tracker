@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
+import { SortableContext, arrayMove, rectSortingStrategy } from '@dnd-kit/sortable';
 import { Timer, HistoryItem } from './types';
 import TimerCard from './components/TimerCard';
+import SortableTimerCard from './components/SortableTimerCard';
 import HistorySidebar from './components/HistorySidebar';
 import ClickUpSettings from './components/ClickUpSettings';
 import TimesheetPanel from './components/TimesheetPanel';
@@ -129,7 +132,7 @@ const App: React.FC = () => {
       sessionStartTime: null,
       createdAt: Date.now()
     };
-    setTimers(prev => [...prev, newTimer]);
+    setTimers(prev => [newTimer, ...prev]);
   }, []);
 
   const deleteTimer = useCallback((id: string) => {
@@ -223,7 +226,7 @@ const App: React.FC = () => {
       sessionStartTime: null,
       createdAt: Date.now(),
     };
-    setTimers(prev => [...prev, restored]);
+    setTimers(prev => [restored, ...prev]);
     setHistory(prev => prev.filter(h => h.id !== item.id));
   }, []);
 
@@ -262,6 +265,25 @@ const App: React.FC = () => {
       setTimers([]);
     }
   }, [timers]);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: { distance: 5 },
+    })
+  );
+
+  const handleDragEnd = useCallback((event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    setTimers(prev => {
+      const unsynced = prev.filter(t => !t.syncedAt);
+      const synced = prev.filter(t => t.syncedAt);
+      const oldIndex = unsynced.findIndex(t => t.id === active.id);
+      const newIndex = unsynced.findIndex(t => t.id === over.id);
+      if (oldIndex === -1 || newIndex === -1) return prev;
+      return [...arrayMove(unsynced, oldIndex, newIndex), ...synced];
+    });
+  }, []);
 
   const handleLogout = useCallback(() => {
     localStorage.removeItem('app_auth_token');
@@ -372,39 +394,48 @@ const App: React.FC = () => {
       </header>
 
       {/* Timers Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-        {[...timers]
-          .sort((a, b) => {
-            if (!!a.syncedAt === !!b.syncedAt) return 0;
-            return a.syncedAt ? 1 : -1;
-          })
-          .map(timer => (
-          <TimerCard
-            key={timer.id}
-            timer={timer}
-            onUpdateTitle={updateTitle}
-            onSetElapsedTime={setElapsedTime}
-            onToggle={toggleTimer}
-            onReset={resetTimer}
-            onDelete={deleteTimer}
-            clickupWorkspaceId={clickupWorkspace?.id}
-            onLinkClickUpTask={linkClickUpTask}
-            onUnlinkClickUpTask={unlinkClickUpTask}
-            onMarkSynced={markTimerSynced}
-          />
-        ))}
+      {(() => {
+        const unsyncedTimers = timers.filter(t => !t.syncedAt);
+        const syncedTimers = [...timers.filter(t => t.syncedAt)]
+          .sort((a, b) => (b.syncedAt ?? 0) - (a.syncedAt ?? 0));
+        const sharedProps = {
+          onUpdateTitle: updateTitle,
+          onSetElapsedTime: setElapsedTime,
+          onToggle: toggleTimer,
+          onReset: resetTimer,
+          onDelete: deleteTimer,
+          clickupWorkspaceId: clickupWorkspace?.id,
+          onLinkClickUpTask: linkClickUpTask,
+          onUnlinkClickUpTask: unlinkClickUpTask,
+          onMarkSynced: markTimerSynced,
+        };
+        return (
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              <SortableContext items={unsyncedTimers.map(t => t.id)} strategy={rectSortingStrategy}>
+                {unsyncedTimers.map(timer => (
+                  <SortableTimerCard key={timer.id} timer={timer} {...sharedProps} />
+                ))}
+              </SortableContext>
 
-        {/* Inline Add Button */}
-        <button
-          onClick={addTimer}
-          className="flex flex-col items-center justify-center p-6 min-h-[180px] rounded-xl border-2 border-dashed border-[#e9e9e7] text-[#a4a4a2] hover:border-[#37352f] hover:text-[#37352f] hover:bg-[#f7f7f5] transition-all group active:scale-[0.98]"
-        >
-          <div className="mb-3 group-hover:scale-110 transition-transform bg-[#f7f7f5] p-3 rounded-full group-hover:bg-[#e9e9e7]">
-            <PlusIcon />
-          </div>
-          <span className="text-sm font-semibold uppercase tracking-wider">New Task</span>
-        </button>
-      </div>
+              {syncedTimers.map(timer => (
+                <TimerCard key={timer.id} timer={timer} {...sharedProps} />
+              ))}
+
+              {/* Inline Add Button */}
+              <button
+                onClick={addTimer}
+                className="flex flex-col items-center justify-center p-6 min-h-[180px] rounded-xl border-2 border-dashed border-[#e9e9e7] text-[#a4a4a2] hover:border-[#37352f] hover:text-[#37352f] hover:bg-[#f7f7f5] transition-all group active:scale-[0.98]"
+              >
+                <div className="mb-3 group-hover:scale-110 transition-transform bg-[#f7f7f5] p-3 rounded-full group-hover:bg-[#e9e9e7]">
+                  <PlusIcon />
+                </div>
+                <span className="text-sm font-semibold uppercase tracking-wider">New Task</span>
+              </button>
+            </div>
+          </DndContext>
+        );
+      })()}
 
       {timers.length === 0 && (
         <div className="mt-12 text-center py-32 bg-[#f9f9f8] rounded-2xl border border-[#e9e9e7] border-dashed">
