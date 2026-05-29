@@ -80,8 +80,8 @@ const ClickUpTaskPicker: React.FC<Props> = ({
   // Filter locally — instant, no API call
   const filteredResults = useMemo(() => {
     const term = query.toLowerCase().trim();
-    if (!term) return allTasks.slice(0, 8);
-    return allTasks.filter(t => t.name.toLowerCase().includes(term)).slice(0, 8);
+    if (!term) return allTasks;
+    return allTasks.filter(t => t.name.toLowerCase().includes(term));
   }, [allTasks, query]);
 
   const handleRefresh = () => {
@@ -185,7 +185,7 @@ const ClickUpTaskPicker: React.FC<Props> = ({
 
         {/* Results — filtered locally */}
         {!loadingAll && filteredResults.length > 0 && (
-          <div className="mt-1 border border-[#e9e9e7] rounded-xl overflow-hidden shadow-sm">
+          <div className="mt-1 border border-[#e9e9e7] rounded-xl overflow-y-auto shadow-sm max-h-60">
             {filteredResults.map(task => (
               <button
                 key={task.id}
