@@ -79,12 +79,19 @@ const ClickUpTaskPicker: React.FC<Props> = ({
       .finally(() => setLoadingAll(false));
   }, [isSearching, hasLoaded, workspaceId]);
 
-  // Filter locally — instant, no API call
-  const filteredResults = useMemo(() => {
+  // Filter locally and split into mine vs others
+  const { myTasks, otherTasks } = useMemo(() => {
     const term = query.toLowerCase().trim();
-    if (!term) return allTasks;
-    return allTasks.filter(t => t.name.toLowerCase().includes(term));
-  }, [allTasks, query]);
+    const results = term
+      ? allTasks.filter(t => t.name.toLowerCase().includes(term))
+      : allTasks;
+
+    if (!assigneeId) return { myTasks: [], otherTasks: results };
+
+    const mine = results.filter(t => t.assignees?.some(a => String(a.id) === assigneeId));
+    const others = results.filter(t => !t.assignees?.some(a => String(a.id) === assigneeId));
+    return { myTasks: mine, otherTasks: others };
+  }, [allTasks, query, assigneeId]);
 
   const handleRefresh = () => {
     clearTaskCache();
@@ -185,14 +192,18 @@ const ClickUpTaskPicker: React.FC<Props> = ({
           )}
         </div>
 
-        {/* Results — filtered locally */}
-        {!loadingAll && filteredResults.length > 0 && (
+        {/* Results — filtered locally, mine first then others */}
+        {!loadingAll && (myTasks.length > 0 || otherTasks.length > 0) && (
           <div className="mt-1 border border-[#e9e9e7] rounded-xl overflow-y-auto shadow-sm max-h-60">
-            {filteredResults.map(task => (
+
+            {/* Tasks assigned to the signed-in user */}
+            {myTasks.map((task, i) => (
               <button
                 key={task.id}
                 onClick={() => { onLink(task.id, task.name); closeSearch(); }}
-                className="w-full text-left px-3 py-2.5 hover:bg-[#f7f7f5] border-b border-[#e9e9e7] last:border-0 transition-colors"
+                className={`w-full text-left px-3 py-2.5 hover:bg-[#f7f7f5] border-b border-[#e9e9e7] transition-colors ${
+                  i === myTasks.length - 1 && otherTasks.length === 0 ? 'last:border-0' : ''
+                }`}
               >
                 <div className="text-sm font-medium text-[#37352f] truncate">{task.name}</div>
                 {task.list?.name && (
@@ -200,10 +211,33 @@ const ClickUpTaskPicker: React.FC<Props> = ({
                 )}
               </button>
             ))}
+
+            {/* Divider between mine and others */}
+            {myTasks.length > 0 && otherTasks.length > 0 && (
+              <div className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-[#b4b4b2] bg-[#f7f7f5] border-b border-[#e9e9e7]">
+                Other tasks
+              </div>
+            )}
+
+            {/* Tasks not assigned to the signed-in user */}
+            {otherTasks.map((task, i) => (
+              <button
+                key={task.id}
+                onClick={() => { onLink(task.id, task.name); closeSearch(); }}
+                className={`w-full text-left px-3 py-2.5 bg-[#fafafa] hover:bg-[#f2f2f0] border-b border-[#e9e9e7] transition-colors ${
+                  i === otherTasks.length - 1 ? 'last:border-0' : ''
+                }`}
+              >
+                <div className="text-sm font-medium text-[#9b9b99] truncate">{task.name}</div>
+                {task.list?.name && (
+                  <div className="text-xs text-[#c4c4c2] mt-0.5 truncate">{task.list.name}</div>
+                )}
+              </button>
+            ))}
           </div>
         )}
 
-        {!loadingAll && query.trim() && filteredResults.length === 0 && (
+        {!loadingAll && query.trim() && myTasks.length === 0 && otherTasks.length === 0 && (
           <p className="mt-2 text-xs text-[#a4a4a2] text-center py-1">No tasks found</p>
         )}
 

@@ -37,6 +37,7 @@ export interface ClickUpTask {
   name: string;
   status: { status: string; color: string };
   list: { id: string; name: string };
+  assignees?: Array<{ id: number; username?: string }>;
 }
 
 export async function getWorkspaces(): Promise<ClickUpWorkspace[]> {
