@@ -197,13 +197,11 @@ const ClickUpTaskPicker: React.FC<Props> = ({
           <div className="mt-1 border border-[#e9e9e7] rounded-xl overflow-y-auto shadow-sm max-h-60">
 
             {/* Tasks assigned to the signed-in user */}
-            {myTasks.map((task, i) => (
+            {myTasks.map(task => (
               <button
                 key={task.id}
                 onClick={() => { onLink(task.id, task.name); closeSearch(); }}
-                className={`w-full text-left px-3 py-2.5 hover:bg-[#f7f7f5] border-b border-[#e9e9e7] transition-colors ${
-                  i === myTasks.length - 1 && otherTasks.length === 0 ? 'last:border-0' : ''
-                }`}
+                className="w-full text-left px-3 py-2.5 bg-green-50 hover:bg-green-100 border-b border-[#e9e9e7] border-l-2 border-l-green-300 transition-colors"
               >
                 <div className="text-sm font-medium text-[#37352f] truncate">{task.name}</div>
                 {task.list?.name && (
@@ -214,23 +212,21 @@ const ClickUpTaskPicker: React.FC<Props> = ({
 
             {/* Divider between mine and others */}
             {myTasks.length > 0 && otherTasks.length > 0 && (
-              <div className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-[#b4b4b2] bg-[#f7f7f5] border-b border-[#e9e9e7]">
+              <div className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-amber-600/60 bg-amber-50 border-b border-[#e9e9e7]">
                 Other tasks
               </div>
             )}
 
             {/* Tasks not assigned to the signed-in user */}
-            {otherTasks.map((task, i) => (
+            {otherTasks.map(task => (
               <button
                 key={task.id}
                 onClick={() => { onLink(task.id, task.name); closeSearch(); }}
-                className={`w-full text-left px-3 py-2.5 bg-[#fafafa] hover:bg-[#f2f2f0] border-b border-[#e9e9e7] transition-colors ${
-                  i === otherTasks.length - 1 ? 'last:border-0' : ''
-                }`}
+                className="w-full text-left px-3 py-2.5 bg-amber-50 hover:bg-amber-100 border-b border-[#e9e9e7] border-l-2 border-l-amber-300 transition-colors"
               >
-                <div className="text-sm font-medium text-[#9b9b99] truncate">{task.name}</div>
+                <div className="text-sm font-medium text-[#37352f] truncate">{task.name}</div>
                 {task.list?.name && (
-                  <div className="text-xs text-[#c4c4c2] mt-0.5 truncate">{task.list.name}</div>
+                  <div className="text-xs text-[#a4a4a2] mt-0.5 truncate">{task.list.name}</div>
                 )}
               </button>
             ))}
