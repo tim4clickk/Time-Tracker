@@ -9,10 +9,12 @@ import ClickUpSettings from './components/ClickUpSettings';
 import TimesheetPanel from './components/TimesheetPanel';
 import LoginPage from './components/LoginPage';
 import { PlusIcon, TrashIcon, HistoryIcon } from './components/Icons';
-import { saveTimers, loadTimers, saveHistory, loadHistory, saveClickUpWorkspace, loadClickUpWorkspace, ClickUpWorkspaceConfig } from './utils/storage';
+import { saveTimers, loadTimers, saveHistory, loadHistory, saveClickUpWorkspace, loadClickUpWorkspace, saveUserIdentity, loadUserIdentity, clearUserIdentity, UserIdentity, ClickUpWorkspaceConfig } from './utils/storage';
+import UserPicker from './components/UserPicker';
 
 const App: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+  const [userIdentity, setUserIdentity] = useState<UserIdentity | null>(() => loadUserIdentity());
   const [timers, setTimers] = useState<Timer[]>([]);
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
@@ -285,8 +287,15 @@ const App: React.FC = () => {
     });
   }, []);
 
+  const handleSelectUser = useCallback((user: UserIdentity) => {
+    saveUserIdentity(user);
+    setUserIdentity(user);
+  }, []);
+
   const handleLogout = useCallback(() => {
     localStorage.removeItem('app_auth_token');
+    clearUserIdentity();
+    setUserIdentity(null);
     setIsAuthenticated(false);
   }, []);
 
@@ -300,6 +309,10 @@ const App: React.FC = () => {
 
   if (!isAuthenticated) {
     return <LoginPage onAuthenticated={() => setIsAuthenticated(true)} />;
+  }
+
+  if (!userIdentity) {
+    return <UserPicker onSelect={handleSelectUser} />;
   }
 
   if (!isLoaded) {
@@ -405,6 +418,7 @@ const App: React.FC = () => {
           onReset: resetTimer,
           onDelete: deleteTimer,
           clickupWorkspaceId: clickupWorkspace?.id,
+          assigneeId: userIdentity?.id,
           onLinkClickUpTask: linkClickUpTask,
           onUnlinkClickUpTask: unlinkClickUpTask,
           onMarkSynced: markTimerSynced,
@@ -486,11 +500,13 @@ const App: React.FC = () => {
         onSelectWorkspace={handleSelectClickUpWorkspace}
       />
 
-      {clickupWorkspace && (
+      {clickupWorkspace && userIdentity && (
         <TimesheetPanel
           isOpen={isTimesheetOpen}
           onClose={() => setIsTimesheetOpen(false)}
           workspaceId={clickupWorkspace.id}
+          userId={userIdentity.id}
+          userName={userIdentity.username || userIdentity.email}
         />
       )}
     </div>

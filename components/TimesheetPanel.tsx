@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { getTeamMembers, getTimeEntries, ClickUpMember, ClickUpTimeEntry } from '../utils/clickup';
+import { getTimeEntries, ClickUpTimeEntry } from '../utils/clickup';
 
 interface Props {
   isOpen: boolean;
   onClose: () => void;
   workspaceId: string;
+  userId: string;
+  userName: string;
 }
 
 const DAILY_TARGET_KEY = 'timesheet_daily_target_hours';
@@ -16,14 +18,6 @@ function loadDailyTarget(): number {
 
 function saveDailyTarget(hours: number) {
   localStorage.setItem(DAILY_TARGET_KEY, hours.toString());
-}
-
-function loadLastMemberId(): string {
-  return localStorage.getItem('timesheet_last_member_id') || '';
-}
-
-function saveLastMemberId(id: string) {
-  localStorage.setItem('timesheet_last_member_id', id);
 }
 
 function formatDuration(ms: number): string {
@@ -61,40 +55,21 @@ function isSameDay(a: Date, b: Date): boolean {
   );
 }
 
-const TimesheetPanel: React.FC<Props> = ({ isOpen, onClose, workspaceId }) => {
-  const [members, setMembers] = useState<ClickUpMember[]>([]);
-  const [selectedMemberId, setSelectedMemberId] = useState<string>(loadLastMemberId);
+const TimesheetPanel: React.FC<Props> = ({ isOpen, onClose, workspaceId, userId, userName }) => {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [entries, setEntries] = useState<ClickUpTimeEntry[]>([]);
-  const [loadingMembers, setLoadingMembers] = useState(false);
   const [loadingEntries, setLoadingEntries] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [dailyTarget, setDailyTarget] = useState<number>(loadDailyTarget);
   const [editingTarget, setEditingTarget] = useState(false);
   const [targetInput, setTargetInput] = useState('');
 
-  // Load team members when panel opens
-  useEffect(() => {
-    if (!isOpen || members.length > 0) return;
-    setLoadingMembers(true);
-    getTeamMembers(workspaceId)
-      .then(m => {
-        setMembers(m);
-        if (!selectedMemberId && m.length > 0) {
-          setSelectedMemberId(String(m[0].id));
-        }
-      })
-      .catch(err => setError(err.message))
-      .finally(() => setLoadingMembers(false));
-  }, [isOpen, workspaceId]);
-
-  // Load entries when member or date changes
   const fetchEntries = useCallback(async () => {
-    if (!selectedMemberId) return;
+    if (!userId) return;
     setLoadingEntries(true);
     setError(null);
     try {
-      const data = await getTimeEntries(workspaceId, selectedMemberId, selectedDate);
+      const data = await getTimeEntries(workspaceId, userId, selectedDate);
       const sorted = [...data].sort((a, b) => parseInt(a.start) - parseInt(b.start));
       setEntries(sorted);
     } catch (err: unknown) {
@@ -102,16 +77,11 @@ const TimesheetPanel: React.FC<Props> = ({ isOpen, onClose, workspaceId }) => {
     } finally {
       setLoadingEntries(false);
     }
-  }, [workspaceId, selectedMemberId, selectedDate]);
+  }, [workspaceId, userId, selectedDate]);
 
   useEffect(() => {
-    if (isOpen && selectedMemberId) fetchEntries();
-  }, [isOpen, selectedMemberId, selectedDate]);
-
-  const handleMemberChange = (id: string) => {
-    setSelectedMemberId(id);
-    saveLastMemberId(id);
-  };
+    if (isOpen && userId) fetchEntries();
+  }, [isOpen, userId, selectedDate]);
 
   const shiftDate = (days: number) => {
     const d = new Date(selectedDate);
@@ -146,7 +116,10 @@ const TimesheetPanel: React.FC<Props> = ({ isOpen, onClose, workspaceId }) => {
       <div className="w-full max-w-lg bg-white shadow-2xl flex flex-col h-full overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-5 border-b border-[#e9e9e7] shrink-0">
-          <h2 className="text-lg font-bold text-[#37352f]">Timesheet</h2>
+          <div>
+            <h2 className="text-lg font-bold text-[#37352f]">Timesheet</h2>
+            <p className="text-xs text-[#a4a4a2] mt-0.5">{userName}</p>
+          </div>
           <button
             onClick={onClose}
             className="text-[#a4a4a2] hover:text-[#37352f] transition-colors p-1 rounded hover:bg-[#f7f7f5]"
@@ -157,27 +130,8 @@ const TimesheetPanel: React.FC<Props> = ({ isOpen, onClose, workspaceId }) => {
           </button>
         </div>
 
-        {/* Controls */}
-        <div className="px-6 py-4 border-b border-[#e9e9e7] shrink-0 space-y-3">
-          {/* User picker */}
-          {loadingMembers ? (
-            <div className="h-9 bg-[#f7f7f5] rounded-lg animate-pulse" />
-          ) : (
-            <select
-              value={selectedMemberId}
-              onChange={e => handleMemberChange(e.target.value)}
-              className="w-full px-3 py-2 border border-[#e9e9e7] rounded-lg text-sm text-[#37352f] outline-none focus:border-[#37352f] bg-white"
-            >
-              {members.length === 0 && <option value="">No members found</option>}
-              {members.map(m => (
-                <option key={m.id} value={String(m.id)}>
-                  {m.username || m.email}
-                </option>
-              ))}
-            </select>
-          )}
-
-          {/* Date navigator */}
+        {/* Date navigator */}
+        <div className="px-6 py-4 border-b border-[#e9e9e7] shrink-0">
           <div className="flex items-center justify-between">
             <button
               onClick={() => shiftDate(-1)}
@@ -274,11 +228,7 @@ const TimesheetPanel: React.FC<Props> = ({ isOpen, onClose, workspaceId }) => {
             </div>
           )}
 
-          {!loadingEntries && !error && !selectedMemberId && (
-            <p className="text-sm text-[#a4a4a2] text-center py-8">Select a team member above.</p>
-          )}
-
-          {!loadingEntries && !error && selectedMemberId && entries.length === 0 && (
+          {!loadingEntries && !error && entries.length === 0 && (
             <div className="text-center py-12">
               <p className="text-[#37352f] font-medium mb-1">No time logged</p>
               <p className="text-sm text-[#a4a4a2]">Nothing tracked for this day yet.</p>

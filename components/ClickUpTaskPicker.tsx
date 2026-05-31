@@ -10,6 +10,7 @@ interface Props {
   linkedTaskId?: string;
   linkedTaskName?: string;
   isSynced?: boolean;
+  assigneeId?: string;
   onLink: (taskId: string, taskName: string) => void;
   onUnlink: () => void;
   onSynced: () => void;
@@ -24,6 +25,7 @@ const ClickUpTaskPicker: React.FC<Props> = ({
   linkedTaskId,
   linkedTaskName,
   isSynced,
+  assigneeId,
   onLink,
   onUnlink,
   onSynced,
@@ -103,7 +105,7 @@ const ClickUpTaskPicker: React.FC<Props> = ({
     try {
       const durationMs = currentElapsed * 1000;
       const startMs = Date.now() - durationMs;
-      await logTime(workspaceId, linkedTaskId, startMs, durationMs, timerTitle);
+      await logTime(workspaceId, linkedTaskId, startMs, durationMs, timerTitle, assigneeId);
       onSynced();
     } catch (err: unknown) {
       setSyncState('error');

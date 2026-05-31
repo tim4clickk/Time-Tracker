@@ -11,6 +11,7 @@ interface TimerCardProps {
   onReset: (id: string) => void;
   onDelete: (id: string) => void;
   clickupWorkspaceId?: string;
+  assigneeId?: string;
   onLinkClickUpTask: (id: string, taskId: string, taskName: string) => void;
   onUnlinkClickUpTask: (id: string) => void;
   onMarkSynced: (id: string) => void;
@@ -26,6 +27,7 @@ const TimerCard: React.FC<TimerCardProps> = ({
   onReset,
   onDelete,
   clickupWorkspaceId,
+  assigneeId,
   onLinkClickUpTask,
   onUnlinkClickUpTask,
   onMarkSynced,
@@ -220,6 +222,7 @@ const TimerCard: React.FC<TimerCardProps> = ({
           linkedTaskId={timer.clickupTaskId}
           linkedTaskName={timer.clickupTaskName}
           isSynced={isSynced}
+          assigneeId={assigneeId}
           onLink={(taskId, taskName) => onLinkClickUpTask(timer.id, taskId, taskName)}
           onUnlink={() => onUnlinkClickUpTask(timer.id)}
           onSynced={() => onMarkSynced(timer.id)}

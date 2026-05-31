@@ -22,13 +22,21 @@ export const handler = async (event: NetlifyEvent): Promise<NetlifyResponse> => 
     };
   }
 
-  const { teamId, taskId, start, duration, description } = JSON.parse(event.body || '{}');
+  const { teamId, taskId, start, duration, description, assigneeId } = JSON.parse(event.body || '{}');
   if (!teamId || !taskId || !start || !duration) {
     return {
       statusCode: 400,
       body: JSON.stringify({ error: 'teamId, taskId, start, and duration are required' }),
     };
   }
+
+  const payload: Record<string, unknown> = {
+    description: description || '',
+    start,
+    duration,
+    tid: taskId,
+  };
+  if (assigneeId) payload.assignee = parseInt(assigneeId, 10);
 
   const response = await fetch(
     `https://api.clickup.com/api/v2/team/${teamId}/time_entries`,
@@ -38,12 +46,7 @@ export const handler = async (event: NetlifyEvent): Promise<NetlifyResponse> => 
         Authorization: apiKey,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        description: description || '',
-        start,
-        duration,
-        tid: taskId,
-      }),
+      body: JSON.stringify(payload),
     }
   );
 

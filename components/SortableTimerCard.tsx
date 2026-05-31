@@ -12,6 +12,7 @@ interface Props {
   onReset: (id: string) => void;
   onDelete: (id: string) => void;
   clickupWorkspaceId?: string;
+  assigneeId?: string;
   onLinkClickUpTask: (id: string, taskId: string, taskName: string) => void;
   onUnlinkClickUpTask: (id: string) => void;
   onMarkSynced: (id: string) => void;

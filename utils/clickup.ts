@@ -112,12 +112,13 @@ export async function logTime(
   taskId: string,
   startMs: number,
   durationMs: number,
-  description: string
+  description: string,
+  assigneeId?: string
 ): Promise<void> {
   const res = await fetch('/.netlify/functions/log-time', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ teamId, taskId, start: startMs, duration: durationMs, description }),
+    body: JSON.stringify({ teamId, taskId, start: startMs, duration: durationMs, description, assigneeId }),
   });
   if (!res.ok) {
     const data = await res.json();
