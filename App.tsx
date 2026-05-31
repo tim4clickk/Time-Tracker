@@ -187,23 +187,27 @@ const App: React.FC = () => {
   }, []);
 
   const toggleTimer = useCallback((id: string) => {
-    setTimers(prev => prev.map(t => {
-      if (t.id === id) {
-        const timestamp = Date.now();
-        if (!t.isRunning) {
-          return { ...t, isRunning: true, sessionStartTime: timestamp };
-        } else {
-          const sessionElapsed = t.sessionStartTime ? Math.floor((timestamp - t.sessionStartTime) / 1000) : 0;
-          return {
-            ...t,
-            isRunning: false,
-            baseSeconds: t.baseSeconds + sessionElapsed,
-            sessionStartTime: null
-          };
+    const timestamp = Date.now();
+    setTimers(prev => {
+      const target = prev.find(t => t.id === id);
+      const isStarting = target && !target.isRunning;
+      return prev.map(t => {
+        if (t.id === id) {
+          if (!t.isRunning) {
+            return { ...t, isRunning: true, sessionStartTime: timestamp };
+          } else {
+            const sessionElapsed = t.sessionStartTime ? Math.floor((timestamp - t.sessionStartTime) / 1000) : 0;
+            return { ...t, isRunning: false, baseSeconds: t.baseSeconds + sessionElapsed, sessionStartTime: null };
+          }
         }
-      }
-      return t;
-    }));
+        // Pause any other running timer when a new one starts
+        if (isStarting && t.isRunning) {
+          const sessionElapsed = t.sessionStartTime ? Math.floor((timestamp - t.sessionStartTime) / 1000) : 0;
+          return { ...t, isRunning: false, baseSeconds: t.baseSeconds + sessionElapsed, sessionStartTime: null };
+        }
+        return t;
+      });
+    });
   }, []);
 
   const resetTimer = useCallback((id: string) => {
